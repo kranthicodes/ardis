@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - app_network
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.5.5.36-alpine
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    env_file:
+      - .env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app_network
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 262144
+        hard: 262144
+    restart: on-failure
+
+  ar-from-arconnect:
+    build:
+      context: ./services/ar-from-arconnect
+      dockerfile: Dockerfile
+    container_name: ar-from-arconnect
+    depends_on:
+      clickhouse:
+        condition: service_started
+    env_file:
+      - .env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app_network
+    restart: on-failure
+ 
+  arconnect-fee-tx:
+    build:
+      context: ./services/arconnect-fee-tx
+      dockerfile: Dockerfile
+    container_name: arconnect-fee-tx
+    depends_on:
+      clickhouse:
+        condition: service_started
+    env_file:
+      - .env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app_network
+    restart: on-failure
+
+  arconnect-signed-tx:
+    build:
+      context: ./services/arconnect-signed-tx
+      dockerfile: Dockerfile
+    container_name: arconnect-signed-tx
+    depends_on:
+      clickhouse:
+        condition: service_started
+    env_file:
+      - .env
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - app_network
+    restart: on-failure
+
+volumes:
+  clickhouse_data:
+  grafana-storage:
+networks:
+  app_network:
+  
