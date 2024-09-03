@@ -10,6 +10,24 @@ const argql = arGql({ endpointUrl: GQLUrls.goldsky });
 function prepareClickHouseInsertRow(edge: GQLEdgeInterface) {
   const node = edge.node;
   const tagsArray = node.tags
+    .filter((tag) => {
+      const whitelistedTypes = ["string", "number", "boolean"];
+
+      if (!whitelistedTypes.includes(typeof tag.value)) {
+        return false;
+      }
+
+      if (typeof tag.value === "string") {
+        try {
+          JSON.parse(tag.value);
+
+          return false;
+        } catch (e) {
+          return true;
+        }
+      }
+      return true;
+    })
     .map((tag) => `('${tag.name}', '${tag.value}')`)
     .join(",");
 
