@@ -21,10 +21,6 @@ export class BaseIndexer {
    
     await getClickhouseClient();
 
-    backgroundDBProcess.start(
-      this.bufferFlushStarted,
-      this.bufferFlushCompleted
-    );
     this.traverseAndStore();
   }
 
