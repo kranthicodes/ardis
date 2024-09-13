@@ -1,13 +1,17 @@
 import { BaseIndexer } from "./modules/BaseIndexer";
 import { arGql, GQLUrls } from "ar-gql";
 import { getClickhouseClient } from "./modules/clickhouse/utils";
-import type { GQLEdgeInterface } from "ar-gql/dist/faces";
+import type { GQLEdgeInterface, GQLNodeInterface } from "ar-gql/dist/faces";
 import { sleep } from "bun";
 import { batchInsertIntoClickhouseTable } from "./modules/clickhouse/batch-insert";
 const argql = arGql({ endpointUrl: GQLUrls.goldsky });
 
+interface GQLNodeInterfaceWithIngestedAt extends GQLNodeInterface {
+  ingested_at: string;
+}
+
 function prepareClickHouseInsertRow(edge: GQLEdgeInterface) {
-  const node = edge.node;
+  const node = edge.node as GQLNodeInterfaceWithIngestedAt;
   const tagsArray = node.tags
     .filter((tag) => {
       const whitelistedTypes = ["string", "number", "boolean"];
@@ -35,6 +39,7 @@ function prepareClickHouseInsertRow(edge: GQLEdgeInterface) {
     node.owner.address,
     node.block.height,
     node.block.timestamp,
+    node.ingested_at,
     `[${tagsArray}]`,
   ];
 }
@@ -47,11 +52,12 @@ async function ensureArFromArconnectTableExists(tableName: string) {
         owner_address String CODEC(ZSTD),
         block_height UInt64 CODEC(Delta, ZSTD),
         block_timestamp DateTime CODEC(Delta, ZSTD),
+        ingested_at DateTime CODEC(Delta, ZSTD),
         tags Array(Tuple(String, String)) CODEC(ZSTD)
       ) ENGINE = ReplacingMergeTree()
-      PARTITION BY toYYYYMM(block_timestamp)
+      PARTITION BY toYYYYMM(ingested_at)
       PRIMARY KEY (id)
-      ORDER BY (id, owner_address, tags, block_timestamp);
+      ORDER BY (id, owner_address, tags, block_timestamp, ingested_at);
     `;
 
   await client.exec({
@@ -106,6 +112,7 @@ query($cursor: String) {
     edges {
       cursor
       node {
+        ingested_at
         id
         owner { address }
         tags { name value }
@@ -121,6 +128,7 @@ const columns = [
   "owner_address",
   "block_height",
   "block_timestamp",
+  "ingested_at",
   "tags",
 ];
 
