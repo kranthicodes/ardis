@@ -52,7 +52,7 @@ async function ensurePrintArchiveFromArconnectTableExists(tableName: string) {
       ) ENGINE = ReplacingMergeTree()
       PARTITION BY toYYYYMM(block_timestamp)
       PRIMARY KEY (id)
-      ORDER BY (id, owner_address, quantity_ar, block_timestamp);
+      ORDER BY (id, owner_address, block_timestamp);
     `;
 
   await client.exec({
