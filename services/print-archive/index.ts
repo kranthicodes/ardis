@@ -93,7 +93,7 @@ query($cursor: String) {
   transactions(
     # your query parameters
     tags: [
-      { name: "App-Name", values: ["ArConnect BETA"] },
+      { name: "App-Name", values: ["ArConnect"] },
       { name: "Type", values: ["Print-Archive"] }
     ]  
     # standard template below
